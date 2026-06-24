@@ -1,24 +1,4 @@
---[[
-    ╔═══════════════════════════════════════════════════════╗
-    ║                    J A D E                            ║
-    ║         Premium Drawing API GUI Library               ║
-    ║                   v1.0.0                              ║
-    ╚═══════════════════════════════════════════════════════╝
-    
-    Loadstring:
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/scxllc/jadev2/refs/heads/main/x"))()
-    
-    Usage:
-        local Window = Jade:CreateWindow({ Title = "My Script", SubTitle = "v1.0" })
-        local Tab = Window:AddTab({ Title = "Main" })
-        local Section = Tab:AddSection({ Title = "Combat" })
-        Section:AddToggle({ Id = "example", Title = "Toggle", Callback = function(v) end })
-        Jade:Start()
-]]
 
--- ═══════════════════════════════════════════════════════
--- Section 1: Core Utilities
--- ═══════════════════════════════════════════════════════
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
