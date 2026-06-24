@@ -5,6 +5,9 @@
     ║                   v1.0.0                              ║
     ╚═══════════════════════════════════════════════════════╝
     
+    Loadstring:
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/scxllc/jadev2/refs/heads/main/x"))()
+    
     Usage:
         local Window = Jade:CreateWindow({ Title = "My Script", SubTitle = "v1.0" })
         local Tab = Window:AddTab({ Title = "Main" })
@@ -206,6 +209,27 @@ local function rect(id, x, y, w, h, color, op, z, corner)
     })
 end
 
+local function glow(id, x, y, w, h, color, op, z, corner, passes)
+    if not State.GlowEnabled then
+        passes = passes or 3
+        for i = 1, passes do
+            local c = Cache[id .. ".gl" .. i]
+            if c and c.Obj then c.Obj.Visible = false end
+        end
+        return
+    end
+    passes = passes or 3
+    local spread = 2
+    local alphaDecay = op / passes
+    for i = 1, passes do
+        Draw(id .. ".gl" .. i, "Square", {
+            Filled = true, Color = color, Transparency = alphaDecay * (passes - i + 1) * 0.5,
+            ZIndex = z - 1, Position = Vector2.new(x - i * spread, y - i * spread),
+            Size = Vector2.new(w + i * spread * 2, h + i * spread * 2), Corner = corner + i * spread,
+        })
+    end
+end
+
 local function outline(id, x, y, w, h, color, op, z, corner)
     if w <= 0 or h <= 0 then return end
     Draw(id, "Square", {
@@ -220,7 +244,7 @@ local function text(id, str, x, y, size, color, z, centered, opacity)
     str = tostring(str)
     Draw(id, "Text", {
         Text = str, Position = Vector2.new(x, y),
-        Size = size or 13, Color = color, Font = Drawing.Fonts and Drawing.Fonts.UI or 0,
+        Size = size or 13, Color = color, Font = Drawing.Fonts and Drawing.Fonts.SystemBold or 2,
         ZIndex = (z or 1) + 10, Center = centered == true,
         Outline = false, Transparency = opacity or 1,
     })
@@ -799,6 +823,7 @@ local RAIL_W = 160
 
 local State = {
     Win = { x = 100, y = 80, w = 580, h = 460 },
+    GlowEnabled = true,
     MinW = 470, MinH = 380,
     Minimized = false,
     Maximized = false,
@@ -1525,6 +1550,16 @@ function UI:CreateWindow(cfg)
             end,
         })
 
+        ifaceSection:AddToggle({
+            Id = "_glow",
+            Title = "High Quality Glows",
+            Desc = "Disabling improves FPS",
+            Default = State.GlowEnabled,
+            Callback = function(v)
+                State.GlowEnabled = v
+            end,
+        })
+
         ifaceSection:AddKeybind({
             Id = "_minimize_key",
             Title = "Minimize Key",
@@ -1626,6 +1661,9 @@ local function processEl(el, idp, x, y, w, h, dt, z, block)
     end
 
     -- Background card
+    if el.hover.v > 0.05 then
+        glow(idp .. ".gl", x, y, w, h, Theme.Accent, el.hover.v * 0.15, z, 5, 2)
+    end
     rect(idp .. ".bg", x, y, w, h, Theme.Element, lerp(OP.Element, OP.ElementHover, el.hover.v), z, 5)
     outline(idp .. ".bd", x, y, w, h, Theme.ElementBorder, OP.Border, z + 1, 5)
 
@@ -2741,8 +2779,12 @@ local function renderWindow(dt)
                         idx = idx + 1
                         local hh = cardHeight(el)
                         local top, bot = cy, cy + hh
-                        if bot > cvy and top < viewBottom then
+                        if top >= cvy - 5 and bot <= viewBottom + 5 then
                             processEl(el, "t" .. State.ActiveTab .. "e" .. idx, cx, cy, cw, hh, dt, 20, block or not mouseInView)
+                        else
+                            -- Hide elements outside bounds to prevent bleeding
+                            local c1 = Cache["t" .. State.ActiveTab .. "e" .. idx .. ".bg"]
+                            if c1 and c1.Obj then c1.Obj.Visible = false end
                         end
                         cy = cy + hh + gap
                     end
@@ -2757,6 +2799,10 @@ local function renderWindow(dt)
         rect("win.curtain", win.x + RAIL_W + 1, cvy, win.w - RAIL_W - 1, cvh,
             Theme.WindowBg, math.min(1, State.TabCurtain.v), 50, 0)
     end
+
+    -- Window Glow & Accent Line
+    glow("win.glow", win.x, win.y, win.w, win.h, Color3.new(0,0,0), 0.4, 57, 8, 4)
+    rect("win.accent", win.x + RAIL_W, win.y + TITLE_H - 1, win.w - RAIL_W, 1, Theme.Accent, 1, 60, 0)
 
     -- Title bar (drawn on top of content)
     rect("win.tbmask", win.x, win.y, win.w, TITLE_H, Theme.WindowBg, OP.Window, 58, 8)
@@ -2955,5 +3001,4 @@ end
 
 -- Auto-start if AutoStep not disabled
 -- (Caller controls when to call Jade:Start())
-
-return Jade
+-- Global 'Jade' is already set, no return needed for loadstring usage
